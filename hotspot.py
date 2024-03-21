@@ -1165,7 +1165,7 @@ def encode_data_list_grouped(G, data_dir, max_dist, step_size, show_log = False)
             print("Time for feature extraction for " + filename + " is " + str(ee_time - es_time))
         encode_list.append(encode)
     return encode_list, (total_time / file_count)
-def map_events_to_tile_cropped_by_place(place, prob, crimes,  base_id = 0, show_log = False):
+def map_events_to_tile_cropped_by_place(place, prob, crimes,  group = False, base_id = 0, show_log = False):
     #wn = (-118.2730593,34.0532872)
     #es = (-118.2121635,34.0122962)
     #p = crimes.iloc[index]
@@ -1192,7 +1192,10 @@ def map_events_to_tile_cropped_by_place(place, prob, crimes,  base_id = 0, show_
     if(show_log):
         print("No. of events: ", len(events))
         print(events)
-    matched_index = match_event_to_edges_grouped(events, G, show_mod = show_log)
+    if (group):
+        matched_index = match_event_to_edges_grouped(events, G, show_mod = show_log)
+    else:
+        matched_index = match_event_to_edges(events, G, show_mod = show_log)
     return G
 def graph_from_bbox_with_place(
     query,
