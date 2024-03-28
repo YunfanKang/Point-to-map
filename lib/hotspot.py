@@ -229,7 +229,7 @@ def Ltp (root, tj):
         else:
             D = D + child.l + tj - child.d #if a node is further than tj, the subtree rooted at the node will not be computed
     return D
-def wholeL():
+""" def wholeL():
     place = "Los Angeles, California"
     G = ox.graph_from_place(place, network_type='drive')
     fix_oneway(G)
@@ -238,7 +238,7 @@ def wholeL():
     L = 0
     for edge in G.edges:
         L = L + edge_lengths[edge]/2
-    return L
+    return L """
 def L(G):
     edge_lengths = nx.get_edge_attributes(G, "length")
     edge_oneway = nx.get_edge_attributes(G, "oneway")
