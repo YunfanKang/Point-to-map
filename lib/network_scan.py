@@ -45,13 +45,28 @@ def ntpi_grouped(t, pi, G,matched_index):
             count += int(G.nodes[p]['event_count'])
     return count
 
-def network_scan_statistic(pi, G, wholeN, l, step = 20, start = 4800, max_distance = 4800, global_HS = Ture, plot = False, show_log = False):
+def network_scan_statistic_at_point(dic, pi, G, wholeN, L, targetSize, step = 20, start = 10000, max_distance = 25000, global_HS = True, plot = False, show_log = False):
     if(show_log):
         print(pi)
     time1 = time.time()
     if(show_log):
         print("Compute extended-tree")
     et = extended_shortest_path_tree_dict(pi, G, cutoff = max_distance) 
+    LT = Ltp(et, max_distance)
+    while(LT < targetSize):
+        start = max_distance
+        max_distance *= 2
+        et = extended_shortest_path_tree_dict(pi, G, cutoff = max_distance) 
+        LT_double = Ltp(et, max_distance)
+        if not LT_double > LT:
+            dic[pi] = 1.0
+            if(show_log):
+                print(pi, " on island with size ", LT_double,  ", smaller than targetSize ", targetSize)
+            return
+        LT = LT_double
+        if(show_log):
+            print("Double the etree max_distance = ", max_distance, " new tree size: ", LT_double)
+        
     matched_index = list()
     if(show_log):
         print("Start dijkstra's")
@@ -67,61 +82,33 @@ def network_scan_statistic(pi, G, wholeN, l, step = 20, start = 4800, max_distan
         print("Time for preparation: ", str(timePrep - time1))
     
     t = start
-    while(Ltp(et, t) < ):
+    l = Ltp(et, t)
+    while(l < targetSize):
         t += step
+        l = Ltp(et, t)
+    if(show_log):
+        print("Subnet size: ", l)
 
-    for i in range(1, m+1):
-        if show_log:
-            print("i = ", i)
-            print("No. of points in range: ", ntpi(t*i, pi, G ,matched_index))
-        if ntpi(t*i, pi, G,matched_index) == 0:
-            if show_log:
-                print("No event in range, skip")
-            cluster = cluster - 1
-            continue
-        stime = time.time()
-        mean = Ltp(et, t * i)
-        ltime = time.time()
-        if show_log:
-            print("Ltp cal: ", mean)
-        std = Var(G, t * i, l, pi, wholeN, et)**0.5
-        sTtime = time.time()
-        if show_log:
-            print("std cal: ", std)
-        k = Ktp_grouped(G, t * i, l, pi, wholeN, matched_index)
-        ktime = time.time()
-        if show_log:
-            print("k cal: ",k)
-        normalDist = scipy.stats.norm(mean, std)
-        if k >= normalDist.ppf(1-.01):
-            if show_log:
-                print("At ti = ", t*i, " k >upper critical")
-            cluster = cluster + 1
-            return 1
-        elif k < normalDist.ppf(.01):
-            if show_log:
-                print("At ti = ", t*i, " k <lower critical")
-            return -1
-        else:
-            if show_log:
-                print("At ti = ", t*i, " CSR")
-            return 0
-    time2 = time.time()
-    if plot:
-        nc = ["r" if (node <0) else "b" for node in G.nodes()]
-        ns = [10 if (node <0) else 0 for node in G.nodes()]
-        classPath = str(c_code)+"_" +str(t) + "_" + str(m)+"/"
-        if cluster > 0:
-            classPath  = classPath + "Cluster"
-        elif cluster < 0:
-            classPath = classPath + "De_cluster"
-        else:
-            classPath = classPath + "CSR"
-        fig, ax = ox.plot_graph(G, node_color=nc, node_size = ns, bgcolor = '#ffffff', save = True, filepath = "./" + classPath + "/" + str(c_code) + "_" + str(t) + "_" + str(prob) + ".jpg")
-        #print("Saving result for " + str(prob) + "to " + "./" + classPath + "/" + str(c_code) + "_" + str(t) + "_" + str(prob))
-    if show_log:
-        print("Total count: ", str(cluster))
-    file1.write(str(cluster) + ", "+ str(time2 - time1) + "\n")
-    file1.close()
-    #remove_node(G, center_index)
-    return G
+    expected_n = wholeN / L * l 
+    observed_n = ntpi(t, pi, G,matched_index)
+    likelyhood = continuous_homogeneous_possion_likelyhood_test(expected_n, observed_n, wholeN, wholeN)
+    if(show_log):
+        print("Expected: ", expected_n, " Observed: ", observed_n, " likelyhood at ", pi, " is ", likelyhood)
+    #return likelyhood
+    dic[pi] = likelyhood
+    return likelyhood
+
+def network_scan_on_G(G, center_points, no_of_processes, window_size = 0):
+    p = multiprocessing.Pool(no_of_processes)
+    d = multiprocessing.Manager().dict()
+    process_list = []
+    N = wholeN(G)
+    LG = L(G)
+    if(window_size == 0):
+        targetSize = LG/10
+    else:
+        target_size = window_size
+    for pi in center_points:
+        process_list.append((d, pi, G, N, LG, targetSize))
+    p.starmap(network_scan_statistic_at_point, process_list)
+    return d
