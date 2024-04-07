@@ -5,6 +5,7 @@ import multiprocessing
 from hotspot import *
 from os.path import exists
 import sys
+import os
 
 def report_status(result):
 	print(f'Callback received: {result}')
@@ -29,22 +30,14 @@ def check_existence(folder, prob, g_id, crimes):
 		print("Already exists, skip " + str(prob))
 	else:
 		print(str(prob) + "does not exists")
-if __name__ == '__main__': 
-	location = sys.argv[1]
-	data_file = sys.argv[2]
-	output_folder = sys.argv[3]
-	lon = sys.argv[4]
-	lat = sys.argv[5]
-	np = sys.argv[6]
+def match_points_to_network(location, data_file, lon, lat, number_of_processes, output_folder = "Temp_Grids"):
 	points = pd.read_csv(data_file)
 	print("Total number of events: " + str(points.shape[0]))
-	xs = points[lon]
-	ys = points[lat]
 	xmin = points[lon].min()
 	xmax = points[lon].max()
 	ymin = points[lat].min()
 	ymax = points[lat].max()
-	p = multiprocessing.Pool(int(np))
+	p = multiprocessing.Pool(int(number_of_processes))
 	#prob = (-118.3621635,34.0122962)
 	#GList = list()
 	i = 100
@@ -62,6 +55,23 @@ if __name__ == '__main__':
 		x = x + 0.06
 	p.close()
 	p.join() 
-	print("Done!")
+	return combine_grid(output_folder)
+def combine_grid(graphml_dir):
+	GridList = list()
+	for filename in os.listdir(graphml_dir):
+		Gload = ox.io.load_graphml(filepath = graphml_dir + "/"+filename)
+		GridList.append(Gload)
+	GridM =  nx.compose_all(GridList)
+	fix_edge_error_after_merging_grids(GridM)
+	fix_negative_edge(GridM)
+	return GridM
+if __name__ == '__main__': 
+	location = sys.argv[1]
+	data_file = sys.argv[2]
+	output_folder = sys.argv[3]
+	lon = sys.argv[4]
+	lat = sys.argv[5]
+	np = sys.argv[6]
+	
 	#GM = nx.compose_all(GList)
 	#ox.io.save_graphml(GM, filepath = "GraphML/Merged.graphml")

@@ -11,5 +11,5 @@ pip install osmnx
 pip install scipy
 pip install scikit-learn
 pip install geopy
-pip install anytree
+pip install any tree
 python multiMapMatching_cropped.py Chicago Crimes_-_366.csv  Chicago_1year_nogroup Longitude Latitude 10
