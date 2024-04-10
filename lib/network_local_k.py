@@ -21,7 +21,10 @@ def ntpi_grouped(t, pi, G,matched_index):
             #print(p)
             #print(p in found)
             found.append(p)
-            count += int(G.nodes[p]['event_count'])
+            if 'event_count' in G.nodes[p]:
+                count += int(G.nodes[p]['event_count'])
+            else:
+                count += 1
     return count
 
 def network_local_k(pi, G, wholeN, l, alpha = 0.005, t = 1600, m = 1, global_HS = True, plot = False, show_log = True):
@@ -77,17 +80,17 @@ def network_local_k(pi, G, wholeN, l, alpha = 0.005, t = 1600, m = 1, global_HS 
                 print("At ti = ", t*i, " k >upper critical")
             cluster = cluster + 1
             #dic[n] = 1
-            return (n, 1)
+            return 1
         elif k < normalDist.ppf(alpha):
             if show_log:
                 print("At ti = ", t*i, " k <lower critical")
             #dic[n] = -1
-            return (n, -1)
+            return -1
         else:
             if show_log:
                 print("At ti = ", t*i, " CSR")
             #dic[n] = 0
-            return (n, 0)
+            return 0
     time2 = time.time()
     if plot:
         nc = ["r" if (node <0) else "b" for node in G.nodes()]

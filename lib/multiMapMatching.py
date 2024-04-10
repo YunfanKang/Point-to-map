@@ -6,17 +6,20 @@ from hotspot import *
 from os.path import exists
 import sys
 import os
-
+show_log = False
 def report_status(result):
-	print(f'Callback received: {result}')
+	if(show_log):
+		print(f'Callback received: {result}')
 def map_and_save(place, folder, prob, g_id, crimes):
 	#folder = "GraphML_CH_30days_cropped"
 	#place = "Chicago"
 	if(exists(folder + "/" + str(prob) + ".graphml")):
-		print("Already exists, skip " + str(prob))
+		if(show_log):
+			print("Already exists, skip " + str(prob))
 		return 'skip'
 	else:
-		print("Create area centered at ", str(prob))
+		if(show_log):
+			print("Create area centered at ", str(prob))
 	try:
 		G = map_events_to_tile_cropped_by_place(place, prob, crimes, base_id = crimes.shape[0] * g_id, show_log = False)
 		#print(result)
@@ -32,7 +35,8 @@ def check_existence(folder, prob, g_id, crimes):
 		print(str(prob) + "does not exists")
 def match_points_to_network(location, data_file, lon, lat, number_of_processes, output_folder = "Temp_Grids"):
 	points = pd.read_csv(data_file)
-	print("Total number of events: " + str(points.shape[0]))
+	if(show_log):
+		print("Total number of events: " + str(points.shape[0]))
 	xmin = points[lon].min()
 	xmax = points[lon].max()
 	ymin = points[lat].min()
