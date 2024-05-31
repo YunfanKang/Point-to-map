@@ -85,7 +85,7 @@ def match_events_to_tile_cropped_by_place(place, prob, crimes, insert = False, g
     es = (prob[0] + tail_size, prob[1] - tail_size )
     #location_point = (34.0463279, -118.2678461)
     try:
-        G=graph_from_bbox_with_place(place, wn[1], es[1], es[0], wn[0], network_type="drive_service", simplify=False)
+        G=graph_from_bbox_with_place(place, wn[1], es[1], es[0], wn[0], network_type="drive_service", simplify=True)
     except Exception as e:
         raise
     #G=ox.graph_from_point(location_point, dist = 1609, network_type="drive_service", simplify=False)
@@ -119,13 +119,14 @@ def match_events_to_edges(events, G, group = False,insert = False, show_mod = Fa
         if (show_mod):
             print("Nearest edge is ", nearest_edge)
         #Compute the projected position
-        if(G.edges[nearest_edge]['geometry']):#Simplified graph
-            point_geom = Point(reversed(point))
-            edge_geom = G.edges[e]['geometry']
+        if('geometry' in G.edges[nearest_edge]):#Simplified graph
+            point_geom = Point(events.iloc[i]['y'], events.iloc[i]['x'], )
+            edge_geom = G.edges[nearest_edge]['geometry']
             nearest_point_on_edge = edge_geom.interpolate(edge_geom.project(point_geom))
-        matched_x, matched_y = nearest_point_on_edge.coords[0], nearest_point_on_edge.coords[1]
-        if(show_mod):
-                print("Matched through interpolate ", match_x, match_y)
+            #print(nearest_point_on_edge)
+            match_x, match_y = nearest_point_on_edge.x, nearest_point_on_edge.y
+            if(show_mod):
+                    print("Matched through interpolate ", match_x, match_y)
         else:#Straigntline or unsimplified graph
             p1 = nearest_edge[0]
             p2 = nearest_edge[1]
@@ -162,7 +163,7 @@ def match_events_to_edges(events, G, group = False,insert = False, show_mod = Fa
             attrs = {(p1, event_index, 0):{"length": length_1e, "oneway": False}, (event_index, p1, 0):{"length": length_1e, "oneway": False}, (p2, event_index, 0):{"length": length_2e, "oneway": False}, (event_index, p2, 0):{"length": length_2e, "oneway": False}}
             nx.set_edge_attributes(G, attrs)
         else:
-            if(G.edges[nearest_edge]['event_count']):
+            if('event_count' in G.edges[nearest_edge]):
                 G.edges[nearest_edge]['event_count'] += 1
             else:
                 G.edges[nearest_edge]['event_count'] = 1
@@ -171,10 +172,14 @@ def match_events_to_edges(events, G, group = False,insert = False, show_mod = Fa
                 distance_low = length_1e
             else:
                 distance_low = length_2e
-            if G.edges[nearest_edge]['event_dist_to_smaller_node']:
-                G.edges[nearest_edge]['event_dist_to_smaller_node'].update(event_index, distance_low)
+            if 'event_dist_to_smaller_node' in G.edges[nearest_edge]:
+                G.edges[nearest_edge]['event_dist_to_smaller_node'][event_index] = distance_low
             else:
-                G.edges[nearest_edge]['event_dist_to_smaller_node'] = dict(event_index=distance_low)
+                G.edges[nearest_edge]['event_dist_to_smaller_node'] = {event_index: distance_low}
+            if 'event_projected_coordinate' in G.edges[nearest_edge]:
+                G.edges[nearest_edge]['event_projected_coordinate'][event_index] = (match_x, match_y)
+            else:
+                G.edges[nearest_edge]['event_projected_coordinate']= {event_index: (match_x, match_y)}
             
         matched_points.append(event_index)
     return matched_points
